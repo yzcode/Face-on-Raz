@@ -1,25 +1,33 @@
 import requests
 import cv2
 import time
+from picamera.array import PiRGBArray
+from picamera import PiCamera
 
-host = "127.0.0.1:8888"
+host = "10.0.0.163:8888"
 # This script will detect faces via your webcam.
 # Tested with OpenCV3
 
 def monitor():
-    cap = cv2.VideoCapture(0)
-
+#    cap = cv2.VideoCapture(0)
+    camera = PiCamera()
+    rawCapture = PiRGBArray(camera)
     # Create the haar cascade
     faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
     haveCap = True
     count = 0
-    while(True):
-        # Capture frame-by-frame
-        ret, frame = cap.read()
+    time.sleep(0.2)
+    while (True):
+        count = count + 1   
+# Capture frame-by-frame
+        # ret, frame = cap.read()
+        rawCapture.truncate(0)
+	camera.capture(rawCapture, format="bgr")
+        image = rawCapture.array
 
         # Our operations on the frame come here
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
         # Detect faces in the image
         faces = faceCascade.detectMultiScale(
             gray,
@@ -33,19 +41,18 @@ def monitor():
         if len(faces) > 0 and haveCap:
             # haveCap = False
             for (x, y, w, h) in faces:
-                crop_img = frame[y:y+h,x:x+w]
+                crop_img = image[y:y+h,x:x+w]
                 cv2.imwrite("test.jpg", crop_img)
                 send("test.jpg")
-                count = count + 1
             time.sleep(1);
 
         # Draw a rectangle around the faces
         for (x, y, w, h) in faces:
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
 
         # Display the resulting frame
-        # cv2.imshow('frame', frame)
+        # cv2.imshow('image', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
