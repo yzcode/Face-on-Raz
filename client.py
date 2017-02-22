@@ -40,10 +40,13 @@ def monitor():
         print("Found {0} faces!".format(len(faces)))
         if len(faces) > 0 and haveCap:
             # haveCap = False
-            for (x, y, w, h) in faces:
-                crop_img = image[y:y+h,x:x+w]
-                cv2.imwrite("test.jpg", crop_img)
-                send("test.jpg")
+            sorted(faces, key=lambda x: x[2] * x[3], reverse=True)
+            (x, y, w, h) = faces[0]
+            if w < 150 or h < 150:
+                continue
+            crop_img = image[y:y+h,x:x+w]
+            cv2.imwrite("test.jpg", crop_img)
+            send("test.jpg")
             time.sleep(1);
 
         # Draw a rectangle around the faces
@@ -59,7 +62,7 @@ def monitor():
 
 
     # When everything done, release the capture
-    cap.release()
+    # cap.release()
     cv2.destroyAllWindows()
 
 def send(filename):

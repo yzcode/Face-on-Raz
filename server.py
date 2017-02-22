@@ -6,10 +6,15 @@ import time
 import random
 import os
 import string
+import frec
+import apitest as fapi
 from tornado.ioloop import PeriodicCallback
 
-
-
+trust_table = [
+    "",
+    "Mingyu Liang",
+    "Guangli Peng"
+]
 def logging(msg, lv):
     ISOTIMEFORMAT = "%Y-%m-%d %X"
     logtime = time.strftime(ISOTIMEFORMAT, time.localtime())
@@ -29,11 +34,21 @@ class UploadHandler(tornado.web.RequestHandler):
         file1 = self.request.files['file1'][0]
         original_fname = file1['filename']
         extension = os.path.splitext(original_fname)[1]
-        fname = ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(6))
+        fname = str(int(time.time()))
         final_filename= fname+'.jpg'
         output_file = open("uploads/" + final_filename, 'w')
         output_file.write(file1['body'])
+        output_file.flush()
+        print final_filename, "captured"
+        # fapi.search_face("./uploads/" + final_filename)
+        ret = frec.recognize("./uploads/" + final_filename)
+        for pre_lable, conf in ret:
+            if conf < 50 :
+                print trust_table[pre_lable] + " is detected", conf
+            else:
+                print "There might be a stranger"
         self.finish("file" + final_filename + " is uploaded")
+
 
 
 application = tornado.web.Application([
