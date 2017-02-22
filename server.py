@@ -10,6 +10,8 @@ import frec
 import apitest as fapi
 from tornado.ioloop import PeriodicCallback
 
+rough_rec = True
+
 trust_table = [
     "",
     "Mingyu Liang",
@@ -40,13 +42,15 @@ class UploadHandler(tornado.web.RequestHandler):
         output_file.write(file1['body'])
         output_file.flush()
         print final_filename, "captured"
-        # fapi.search_face("./uploads/" + final_filename)
-        ret = frec.recognize("./uploads/" + final_filename)
-        for pre_lable, conf in ret:
-            if conf < 50 :
-                print trust_table[pre_lable] + " is detected", conf
-            else:
-                print "There might be a stranger"
+        if not rough_rec:
+            fapi.search_face("./uploads/" + final_filename)
+        else:
+            ret = frec.recognize("./uploads/" + final_filename)
+            for pre_lable, conf in ret:
+                if conf < 30 :
+                    print trust_table[pre_lable] + " is detected", conf
+                else:
+                    print "There might be a stranger"
         self.finish("file" + final_filename + " is uploaded")
 
 
