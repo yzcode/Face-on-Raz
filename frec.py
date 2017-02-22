@@ -68,10 +68,11 @@ def recognize(image_path):
     width, height = predict_image_pil.size
     ret = []
     sorted(faces, key=lambda x: x[2] * x[3], reverse=True)
-    (x, y, w, h) = faces[0]
-    if w > width / size_cof and h > height / size_cof:
-        nbr_predicted, conf = recognizer.predict(predict_image[y: y + h, x: x + w])
-        ret.append((nbr_predicted, conf))
+    if len(faces) > 0:
+        (x, y, w, h) = faces[0]
+        if w > width / size_cof and h > height / size_cof:
+            nbr_predicted, conf = recognizer.predict(predict_image[y: y + h, x: x + w])
+            ret.append((nbr_predicted, conf))
     return ret
 
 
