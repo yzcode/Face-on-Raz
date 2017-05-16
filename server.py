@@ -1,22 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import tornado.ioloop
-import tornado.web
-import time
-import random
 import os
-import string
-import frec
-import apitest as fapi
-from tornado.ioloop import PeriodicCallback
+import time
 
-rough_rec = True
+import tornado.web
+from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import desc
+import numpy as np
 
-trust_table = [
-    "",
-    "Mingyu Liang",
-    "Guangli Peng"
-]
+from database.db import engine
+from database.db import Base
+from database.models import Face, Record
+from handlers.FaceDetectHandler import RecordUploadHandler, RecordGetHandler
+from handlers.TrustlibHandler import TrustAddFaceHandler, TrustDelFaceHandler, TrustGetFaceHandler
+from handlers.StatisticHandler import DayPieHandler, DaybarHandler, TopVisHandler
+
 def logging(msg, lv):
     ISOTIMEFORMAT = "%Y-%m-%d %X"
     logtime = time.strftime(ISOTIMEFORMAT, time.localtime())
@@ -26,43 +25,50 @@ def logging(msg, lv):
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.render("index.html")
-        pass
+        faces = self.application.db.query(Face).all()
+        records = self.application.db.query(Record).order_by(desc(Record.time)).limit(10).all()
+        self.render("index.html", faces=faces, records=records)
 
 
+class Application(tornado.web.Application):
+    def __init__(self):
+        handlers = [
+            (r"/", MainHandler),
+            (r"/upload", RecordUploadHandler),
+            (r"/trustaddface", TrustAddFaceHandler),
+            (r"/trustdelface", TrustDelFaceHandler),
+            (r"/api/daypie", DayPieHandler),
+            (r"/api/daybar", DaybarHandler),
+            (r"/api/topvis", TopVisHandler),
+            (r"/api/getfaces", TrustGetFaceHandler),
+            (r"/api/getrecords", RecordGetHandler),
+        ]
+        settings = dict(
+            debug=True,
+            static_path=os.path.join(os.path.dirname(__file__), "static"),
+            template_path=os.path.join(os.path.dirname(__file__), "templates")
+        )
+        tornado.web.Application.__init__(self, handlers, **settings)
+        self.db = scoped_session(sessionmaker(bind=engine,
+                                              autocommit=False, autoflush=True,
+                                              expire_on_commit=False))
+        self.trust_set = []
+        for face in self.db.query(Face).all():
+            rep = np.load('static/trustlib/{}.npy'.format(face.file_hash))
+            self.trust_set.append((face.name, rep, face.id))
 
-class UploadHandler(tornado.web.RequestHandler):
-    def post(self):
-        file1 = self.request.files['file1'][0]
-        original_fname = file1['filename']
-        extension = os.path.splitext(original_fname)[1]
-        fname = str(int(time.time()))
-        final_filename= fname+'.jpg'
-        output_file = open("uploads/" + final_filename, 'w')
-        output_file.write(file1['body'])
-        output_file.flush()
-        print final_filename, "captured"
-        if not rough_rec:
-            fapi.search_face("./uploads/" + final_filename)
-        else:
-            ret = frec.recognize("./uploads/" + final_filename)
-            for pre_lable, conf in ret:
-                if conf < 30 :
-                    print trust_table[pre_lable] + " is detected", conf
-                else:
-                    print "There might be a stranger"
-        self.finish("file" + final_filename + " is uploaded")
+    def init_trust_lib(self):
+        del self.trust_set[:]
+        for face in self.db.query(Face).all():
+            rep = np.load('static/trustlib/{}.npy'.format(face.file_hash))
+            self.trust_set.append((face.name, rep, face.id))
 
-
-
-application = tornado.web.Application([
-    (r"/", MainHandler),
-    (r"/upload", UploadHandler),
-])
 
 
 if __name__ == "__main__":
-    application.listen(8888)
+    print "Loaded!"
+    Application().listen(8888)
+    Base.metadata.create_all(engine)
     # pc = PeriodicCallback(fetch, 1000 * 60 * 60)
     # pc.start()
     tornado.ioloop.IOLoop.instance().start()

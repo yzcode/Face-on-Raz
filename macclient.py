@@ -10,7 +10,7 @@ def monitor():
     cap = cv2.VideoCapture(0)
 
     # Create the haar cascade
-    faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+    faceCascade = cv2.CascadeClassifier("facelib/haarcascade_frontalface_default.xml")
     haveCap = True
     count = 0
     while(True):
