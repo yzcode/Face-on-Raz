@@ -2,7 +2,7 @@
 
 DB_HOST = 'localhost'
 DB_USER = 'root'
-DB_PASS = '199528'
+DB_PASS = '******'
 DB_DB   = 'raz'
 
 from sqlalchemy import create_engine
